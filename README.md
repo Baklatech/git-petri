@@ -89,3 +89,7 @@ workflow в той же ветке не пройдёт успешно — на �
 `active_days`, `stale_days`, `branches`, `commits`, `pulls`, `runs`.
 
     python3 -m unittest discover -s tests
+
+## Лицензия
+
+GPL-3.0-or-later, см. [LICENSE](LICENSE).
