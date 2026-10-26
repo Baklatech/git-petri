@@ -13,7 +13,7 @@ _SEQ = re.compile(r"\x1b\[<(\d+);(\d+);(\d+)([Mm])|\x1b\[([ABCDZ])|\x1bO([ABCD])
 _ARROWS = {"A": "up", "B": "down", "C": "right", "D": "left", "Z": "back"}
 _PLAIN = {"\t": "next", "\r": "enter", "\n": "enter", "\x1b": "esc", "\x03": "q", " ": "space"}
 # The same physical keys on a Russian layout.
-_LAYOUT = str.maketrans("йкщдтзвЙКЩДТЗВ", "qroltpdqroltpd")
+_LAYOUT = str.maketrans("йкщдтзвыЙКЩДТЗВЫ", "qroltpdsqroltpds")
 
 
 class Terminal:

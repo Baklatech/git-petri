@@ -8,13 +8,14 @@ from .theme import mix, pack
 TAU = 2 * pi
 BOLD = 1 << 24
 UNDERLINE = 1 << 25
+BG = 1 << 26  # a background colour follows from bit 27: the half-block canvas sets one
 DOTS = (0x01, 0x08, 0x02, 0x10, 0x04, 0x20, 0x40, 0x80)  # [row * 2 + column] within a cell
 CHARS = [" "] + [chr(0x2800 + i) for i in range(1, 256)]
 SCRAMBLE = "░▒▓▚▞/\\<>=+*"
 SPIN = "◐◓◑◒"
 DRAW = {"org": 0, "repo": 1, "branch": 2, "pr": 3, "ci": 4}
 EVENT = {"push": "↑", "branch": "+", "pr": "⇄", "fail": "✗", "heal": "✓", "run": "◐", "note": "!"}
-HINTS = "tab select · o open · l labels · d dormant · r sync · q quit"
+HINTS = "tab select · o open · l labels · s style · d dormant · r sync · q quit"
 
 
 def _stipples():
@@ -533,7 +534,8 @@ class Renderer:
         s = self._sgr.get(k)
         if s is None:
             bold = ("1;" if k & BOLD else "") + ("4;" if k & UNDERLINE else "")
-            s = self._sgr[k] = f"\x1b[0;{bold}38;2;{k >> 16 & 255};{k >> 8 & 255};{k & 255}m"
+            bg = f";48;2;{k >> 43 & 255};{k >> 35 & 255};{k >> 27 & 255}" if k & BG else ""
+            s = self._sgr[k] = f"\x1b[0;{bold}38;2;{k >> 16 & 255};{k >> 8 & 255};{k & 255}{bg}m"
         return s
 
     def compose(self):
@@ -567,7 +569,7 @@ class Renderer:
                 if pos != i:
                     out.append(f"\x1b[{y + 1};{i - a + 1}H")
                 if c == " ":
-                    if cur > 0 and cur & UNDERLINE:  # a blank still shows an underline
+                    if cur > 0 and cur & (UNDERLINE | BG):  # a blank still shows these
                         out.append("\x1b[0m")
                         cur = -1
                 elif k != cur:
@@ -588,7 +590,11 @@ class Renderer:
                 continue
             row, cur = [], -1
             for i in range(y * self.W, (y + 1) * self.W):
-                if col[i] != cur and ch[i] != " ":
+                if ch[i] == " ":
+                    if cur > 0 and cur & BG:
+                        row.append("\x1b[0m")
+                        cur = -1
+                elif col[i] != cur:
                     cur = col[i]
                     row.append(self.sgr(cur))
                 row.append(ch[i])

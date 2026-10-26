@@ -87,6 +87,36 @@ class Emit(unittest.TestCase):
         self.assertIsNone(r.link)
 
 
+    def test_blocks_draw_the_same_dish_and_never_paint_blanks(self):
+        import re
+        from gitpetri.app import Ui, restyle
+        from gitpetri.providers import Demo
+        from gitpetri.render import Renderer
+        from gitpetri.theme import Theme
+
+        sim, ui, r = Sim(), Ui(), Renderer(Theme())
+        r.resize(100, 30)
+        r.labels = False
+        sim.resize(r.A, r.B)
+        sim.apply(Snapshot("demo", Demo().fetch(), 0), 0.0, time.time())
+        r.draw(sim, ui, 9.0, time.time())
+        r.emit()
+        r = restyle(r, "blocks")
+        self.assertFalse(r.labels)
+        out = ""
+        for t in (9.0, 10.0):  # the second frame is a diff: blanks there must not carry a background
+            r.draw(sim, ui, t, time.time())
+            out += r.emit()
+        self.assertIn("▀", r.plain())
+        self.assertIn(";48;2;", out)
+        painted = False
+        for sgr, text in re.findall(r"\x1b\[([\d;]*)m|([^\x1b]+)", out):
+            if text:
+                self.assertFalse(painted and " " in text, repr(text))
+            else:
+                painted = ";48;2;" in sgr
+
+
 class Links(unittest.TestCase):
     def test_no_opener_reports_instead_of_crashing(self):
         from unittest import mock

@@ -16,6 +16,8 @@ def main(argv=None):
     ap.add_argument("--demo", action="store_true", help="synthetic data, no network or token")
     ap.add_argument("--interval", type=int, help="seconds between polls")
     ap.add_argument("--fps", type=int)
+    ap.add_argument("--style", choices=("blocks", "dots"),
+                    help="draw organisms in half-blocks or braille dots (s toggles, and remembers)")
     ap.add_argument("--snapshot", type=float, metavar="SECONDS",
                     help="simulate the demo headlessly and print one frame")
     ap.add_argument("--size", default="120x40", help="frame size for --snapshot")
@@ -24,13 +26,13 @@ def main(argv=None):
 
     cfg = config.load()
     settings = cfg["settings"]
-    for key in ("interval", "fps"):
+    for key in ("interval", "fps", "style"):
         if getattr(args, key):
             settings[key] = getattr(args, key)
 
     if args.snapshot is not None:
         w, h = (int(v) for v in args.size.lower().split("x"))
-        app.snapshot(Demo(), args.snapshot, (w, h), args.colour)
+        app.snapshot(Demo(), args.snapshot, (w, h), args.colour, settings["style"])
         return 0
     if args.command == "accounts":
         for a in cfg["accounts"]:

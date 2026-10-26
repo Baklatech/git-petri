@@ -8,6 +8,7 @@ import subprocess
 import time
 
 from . import config
+from .blocks import Blocks
 from .render import Renderer
 from .sim import Sim
 from .sync import Syncer
@@ -16,6 +17,7 @@ from .theme import Theme
 
 NEXT = {"next", "right", "down", "n"}
 PREV = {"back", "left", "up", "p"}
+STYLES = {"dots": Renderer, "blocks": Blocks}
 
 
 class Ui:
@@ -72,6 +74,20 @@ def visit(sim, url, t):
         sim.note(t, "cannot open links here: install xdg-utils (or wslu on WSL)")
 
 
+def restyle(old, style):
+    """The same dish in another drawing style; the next frame is drawn in full."""
+    new = STYLES[style](old.theme)
+    new.labels = old.labels
+    new.resize(old.W, old.H)
+    return new
+
+
+def remember_style(style):
+    cfg = config.load()
+    cfg["settings"]["style"] = style
+    config.save(cfg)
+
+
 def cycle(sim, ui, step):
     order = sim.ordered()
     if not order:
@@ -83,7 +99,8 @@ def cycle(sim, ui, step):
 
 def run(providers, settings):
     theme, sim, ui = Theme(), Sim(settings["stale_days"]), Ui()
-    renderer = Renderer(theme)
+    style = settings["style"] if settings["style"] in STYLES else "blocks"
+    renderer = STYLES[style](theme)
     frame = 1.0 / max(1, min(60, settings["fps"]))
     with Terminal() as term, contextlib.ExitStack() as stack:
         stack.callback(config.register().unlink, missing_ok=True)
@@ -154,6 +171,11 @@ def run(providers, settings):
                     sim.toggle_dormant(t, time.time())
                 elif key == "l":
                     renderer.labels = not renderer.labels
+                elif key == "s":
+                    style = "dots" if style == "blocks" else "blocks"
+                    renderer = restyle(renderer, style)
+                    remember_style(style)
+                    config_seen = config.mtime()
                 elif key in ("o", "enter"):
                     node = sim.nodes.get(ui.selected)
                     if node:
@@ -170,10 +192,10 @@ def run(providers, settings):
                     ui.selected = node.id if node else None
 
 
-def snapshot(provider, seconds, size, colour):
+def snapshot(provider, seconds, size, colour, style="blocks"):
     """Headless run: simulate `seconds`, print the final frame."""
     theme, sim, ui = Theme(), Sim(), Ui()
-    renderer = Renderer(theme)
+    renderer = STYLES[style](theme)
     renderer.resize(*size)
     sim.resize(renderer.A, renderer.B)
     ui.accounts = [("demo", "ok", "")]

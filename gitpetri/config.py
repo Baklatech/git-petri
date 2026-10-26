@@ -10,6 +10,7 @@ DEFAULTS = {
     "interval": 45,      # seconds between polls while something is changing
     "max_interval": 300, # polls stretch towards this while nothing changes
     "fps": 12,
+    "style": "blocks",   # how organisms are drawn: half-"blocks" or braille "dots" (s toggles)
     "max_repos": 60,     # repositories fetched per account
     "active_repos": 12,  # of those, how many get branches / PRs / CI
     "active_days": 30,   # only repositories pushed this recently get branches / PRs / CI
