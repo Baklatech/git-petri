@@ -397,7 +397,7 @@ class Renderer:
             c = pack(self.ci_colour(n, t)) | BOLD
             self.put(col, row, glyph, pack(th.bright) | BOLD)
             used.add(row * self.W + col)
-            below = int(y + r) // 4 + 1
+            below = int(y + r) // 4 + 1 + force  # the selection's bracket takes the row
             s = self.reveal(clip(n.label, 16), age, n.seed, t)
             # `l` hides the name; the ✓ / ✗ in the middle of the cell always stays.
             # A passing pipeline needs no name: only failing and running ones are worth reading.
@@ -411,9 +411,9 @@ class Renderer:
         s = self.reveal(clip(n.label, 18), age, n.seed, t)
         guard = None if force else used
         if kind == "repo":
-            below = int(y + r) // 4 + 1
+            below = int(y + r) // 4 + 1 + force
             if not self.put(col - len(s) // 2, below, s, c, guard):
-                self.put(col - len(s) // 2, int(y - r) // 4 - 1, s, c, guard)
+                self.put(col - len(s) // 2, int(y - r) // 4 - 1 - force, s, c, guard)
             return
         p = n.parent
         if p is None or n.x >= p.x:
@@ -436,8 +436,16 @@ class Renderer:
         x, y, r = self.cx + n.x, self.cy + n.y, max(n.r, 2.0)
         x0, x1 = (int(x - r) >> 1) - 1, (int(x + r) >> 1) + 1
         y0, y1 = (int(y - r) >> 2) - 1, (int(y + r) >> 2) + 1
-        c = pack(th.accent) | BOLD
-        for cx, cy, ch in ((x0, y0, "┌"), (x1, y0, "┐"), (x0, y1, "└"), (x1, y1, "┘")):
+        # Heavy corners with arms, bright and cut out of whatever lies beneath, so the
+        # bracket stands out on solid colonies whatever the theme's accent; arms only
+        # where they still leave a gap in the middle of each side.
+        c = pack(th.bright) | BOLD | BG | pack(th.bg) << 27
+        marks = [(x0, y0, "┏"), (x1, y0, "┓"), (x0, y1, "┗"), (x1, y1, "┛")]
+        if x1 - x0 >= 4:
+            marks += [(x0 + 1, y0, "━"), (x1 - 1, y0, "━"), (x0 + 1, y1, "━"), (x1 - 1, y1, "━")]
+        if y1 - y0 >= 4:
+            marks += [(x0, y0 + 1, "┃"), (x1, y0 + 1, "┃"), (x0, y1 - 1, "┃"), (x1, y1 - 1, "┃")]
+        for cx, cy, ch in marks:
             if 0 <= cx < self.W and 0 < cy < self.H - 1:
                 self.txt[cy * self.W + cx] = (ch, c)
 
